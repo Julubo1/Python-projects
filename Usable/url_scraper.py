@@ -2,22 +2,16 @@ import requests
 from bs4 import BeautifulSoup
 import csv
 
-def url_builder(example, output_file):
-    """
-    Builds URLs for the given search terms and saves the results to a CSV file.
-
-    Args:
-        example (list): A list of search terms.
-        output_file (str): The path to the output CSV file.
-    """
-    url = 'https://www.google.com/search'
+def url_builder(example, output_file): # Builds URLs for the given search terms and saves the results to a CSV file.
+   
+    url = 'https://www.google.com/search' # Search Engine Used
     headers = {
         'Accept': '*/*',
         'Accept-Language': 'en-US,en;q=0.5',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.82',
     }
 
-    result = []
+    result = [] # Storage for created list. This gets converted into a CSV
 
     for org_name in example:
         parameters = {'q': org_name}
@@ -39,7 +33,7 @@ def url_builder(example, output_file):
 
     print(f"Results saved to {output_file}")
 
-# Example usage:
+# Example list. Simplify adding/removing entries
 example = [
     "NRG Nuclear",
     "Ommelander Ziekenhuisgroep Delfzicht Ziekenhuis",
@@ -60,4 +54,4 @@ example = [
     "BovenIJ Ziekenhuis"
 ]
 
-url_builder(example, "pleasework.csv")
+url_builder(example, "pleasework.csv") # url_builder(list, filename)
