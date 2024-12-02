@@ -3,7 +3,8 @@ from bs4 import BeautifulSoup
 import csv
 
 def url_builder(example, output_file): # Builds URLs for the given search terms and saves the results to a CSV file.
-   
+    print("Scanning...")
+
     url = 'https://www.google.com/search' # Search Engine Used
     headers = {
         'Accept': '*/*',
@@ -13,6 +14,7 @@ def url_builder(example, output_file): # Builds URLs for the given search terms 
 
     result = [] # Storage for created list. This gets converted into a CSV
 
+    # 
     for org_name in example:
         parameters = {'q': org_name}
         try:
@@ -25,7 +27,7 @@ def url_builder(example, output_file): # Builds URLs for the given search terms 
         except Exception as e:
             result.append(f"Error: {e}")
 
-    # Save results to CSV
+    # Save results as .csv
     with open(output_file, "w", newline="", encoding="utf-8") as csv_converter:
         writer = csv.writer(csv_converter)
         writer.writerow(["Search Term", "URL"])
@@ -51,7 +53,7 @@ example = [
     "St. Antonius Ziekenhuis Nieuwegein",
     "St. Antonius Ziekenhuis Overvecht",
     "Zuwe Zuwe Hofpoort Ziekenhuis",
-    "BovenIJ Ziekenhuis"
+    "BovenIJ Ziekenhuis",
 ]
 
 url_builder(example, "pleasework.csv") # url_builder(list, filename)
