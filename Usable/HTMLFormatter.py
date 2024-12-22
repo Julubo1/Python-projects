@@ -1,3 +1,4 @@
+# Cleaning/deleting HTML Tags from a desired Excel Column and put the result in a new column. Line 29 for the desired column
 import pandas as pd
 from bs4 import BeautifulSoup
 
