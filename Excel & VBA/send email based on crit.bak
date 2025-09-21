@@ -1,0 +1,118 @@
+Sub EmailOverdueTasksPerPerson_WithHardcodedEmails()
+    Dim ws As Worksheet, tempWS As Worksheet
+    Dim lastRow As Long, i As Long
+    Dim dict As Object, person As Variant
+    Dim rng As Range
+    Dim outApp As Object, outMail As Object
+    Dim tempWB As Workbook, filePath As String
+    Dim msgBody As String
+    Dim emailDict As Object
+    Dim missingEmails As Collection
+    Dim logWS As Worksheet
+    Dim rowIndex As Variant
+    Dim rowNum As Long
+
+    Set ws = ThisWorkbook.Sheets("Sheetname")
+    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).row
+    Set dict = CreateObject("Scripting.Dictionary")
+    Set emailDict = CreateObject("Scripting.Dictionary")
+    Set missingEmails = New Collection
+
+    ' ?? Define your name-email pairs here
+    emailDict.Add "['id, name']", "email@adress.com"
+    ' Add more as needed
+
+    ' ?? Step 1: Group overdue tasks per person
+    For i = 2 To lastRow
+        If LCase(ws.Cells(i, 11).Value) = "overdue" Then
+            person = ws.Cells(i, 10).Value
+            If Not dict.exists(person) Then
+                dict.Add person, New Collection
+            End If
+            dict(person).Add i ' Store row number
+        End If
+    Next i
+
+    ' ?? Step 2: Set up Outlook
+    On Error Resume Next
+    Set outApp = GetObject(, "Outlook.Application")
+    If outApp Is Nothing Then Set outApp = CreateObject("Outlook.Application")
+    On Error GoTo 0
+
+    ' ?? Step 3: For each person, create attachment and send
+    For Each person In dict.Keys
+        ' ?? Check if email exists
+        If Not emailDict.exists(person) Then
+            missingEmails.Add person
+            GoTo SkipToNextPerson
+        End If
+
+        ' ?? Create temp workbook
+        Set tempWB = Workbooks.Add
+        Set tempWS = tempWB.Sheets(1)
+        ws.Rows(1).Copy tempWS.Rows(1)
+
+        For Each rowIndex In dict(person)
+    ws.Rows(rowIndex).Copy tempWS.Cells(tempWS.Cells(tempWS.Rows.Count, 1).End(xlUp).row + 1, 1)
+Next rowIndex
+
+Dim fullPerson As String
+Dim rawName As String
+Dim safeName As String
+
+fullPerson = person  ' Example: "[99, 'John Doe']"
+
+' Extract the name between single quotes
+If InStr(fullPerson, "'") > 0 Then
+    rawName = Mid(fullPerson, InStr(fullPerson, "'") + 1, InStrRev(fullPerson, "'") - InStr(fullPerson, "'") - 1)
+Else
+    rawName = fullPerson ' fallback if quotes not found
+End If
+
+
+safeName = person
+safeName = Replace(safeName, " ", "_")
+safeName = Replace(safeName, ",", "")
+safeName = Replace(safeName, "[", "")
+safeName = Replace(safeName, "]", "")
+safeName = Replace(safeName, "/", "-")
+safeName = Replace(safeName, "\", "-")
+safeName = Replace(safeName, ":", "-")
+safeName = Replace(safeName, "*", "")
+safeName = Replace(safeName, "?", "")
+safeName = Replace(safeName, """", "")
+safeName = Replace(safeName, "<", "")
+safeName = Replace(safeName, ">", "")
+safeName = Replace(safeName, "|", "")
+safeName = Replace(safeName, "'", "")
+filePath = Environ$("TEMP") & "\" & safeName & "_docname.xlsx"
+        Application.DisplayAlerts = False
+        tempWB.SaveAs fileName:=filePath, FileFormat:=xlOpenXMLWorkbook
+        tempWB.Close SaveChanges:=False
+        Application.DisplayAlerts = True
+
+        ' ?? Send email
+        Set outMail = outApp.CreateItem(0)
+        msgBody = "Dear " & rawName & "," & vbCrLf & vbCrLf & _
+                  "Please find attached your list of overdue tasks. Kindly review and follow up accordingly within 7 days." & vbCrLf & vbCrLf & _
+          "Kind regards," & vbCrLf & "your name"
+        
+        With outMail
+            .To = emailDict(person)
+            .Subject = "Overdue Tasks Reminder"
+            .Body = msgBody
+            .Attachments.Add filePath
+            .Send
+        End With
+
+        Set outMail = Nothing
+
+SkipToNextPerson:
+    Next person
+
+    
+        MsgBox "All emails prepared successfully!", vbInformation
+    
+End Sub
+
+
