@@ -50,14 +50,14 @@ def show():
 
     sales = search_read(
         'sale.order',
-        domain=[('state', '=', 'sale'), ('company_id', '=', selected_company_id),('partner_id','!=','PEO B.V. (B)')],
+        domain=[('state', '=', 'sale'), ('company_id', '=', selected_company_id),('partner_id','!=','CompanyA')],
         fields=['name', 'partner_id', 'amount_untaxed', 'currency_id', 'payment_term_id', 'company_id'],
         context={'lang': 'en_GB'}
     )
 
     purchases = search_read(
         'purchase.order',
-        domain=[('state', '=', 'purchase'), ('company_id', '=', selected_company_id),('partner_id','!=','PEO B.V. (B)')],
+        domain=[('state', '=', 'purchase'), ('company_id', '=', selected_company_id),('partner_id','!=','CompanyA')],
         fields=['name', 'partner_id', 'origin', 'amount_untaxed', 'currency_id', 'payment_term_id', 'company_id'],
         context={'lang': 'en_GB'}
     )
@@ -137,7 +137,7 @@ def show():
         df_purchases['amount'] = -df_purchases['amount_untaxed']
         df_purchases['order'] = df_purchases['name']
         df_purchases['partner_name'] = df_purchases['partner_id_raw'].apply(lambda x: x[1] if isinstance(x, list) else None)
-        df_purchases = df_purchases[~df_purchases['partner_name'].str.contains("PEO B.V.", case=False, na=False)]
+        df_purchases = df_purchases[~df_purchases['partner_name'].str.contains("CompanyA", case=False, na=False)]
 
     else:
         df_purchases = pd.DataFrame()
