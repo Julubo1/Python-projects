@@ -13,8 +13,8 @@ def show():
         ('state', '=', 'posted'),
         ('move_type', 'in', ['out_invoice', 'in_invoice', 'out_refund', 'in_refund']),
         ('payment_state', '=', 'paid'),
-        ('partner_id', 'not ilike', 'PEO B.V'),
-        ('partner_id', 'not ilike', 'PEO Holding')
+        ('partner_id', 'not ilike', 'CompanyA'),
+        ('partner_id', 'not ilike', 'CompanyB')
     ]
 
     fields = [
