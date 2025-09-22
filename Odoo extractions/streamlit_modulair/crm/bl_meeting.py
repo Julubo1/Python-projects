@@ -113,12 +113,12 @@ def show():
 
         # Stage mapping (optioneel, als je custom labels hebt)
         stage_id_to_name = {
-            1: "1st snd + <4 C<->PEO!",
-            2: "C<->PEO+BMCPPS?+PS!",
-            3: "FinalQUO-PEO-->C",
-            4: "SD-SO-PEO-->C WON",
-            5: "≈ITT-C-->PEO!",
-            7: "POcheck+PEO-PO-->OEM",
+            1: "1st snd + <4 C<->Company!",
+            2: "C<->Company+BMCPPS?+PS!",
+            3: "FinalQUO-Company-->C",
+            4: "SD-SO-Company-->C WON",
+            5: "≈ITT-C-->Company!",
+            7: "POcheck+Company-PO-->OEM",
             9: "BMCPPS?+PS!+QUO!"
         }
         filtered['Stage'] = filtered['stage_id_val'].map(stage_id_to_name)
@@ -131,8 +131,8 @@ def show():
             'week_created', 'year_created', 'create_date', 'date_deadline'
         ]].rename(columns={
             'name': 'Opportunity',
-            'x_studio_sd_quote': 'SD-QU-PEO-->C',
-            'x_studio_rd_po_c': 'RD-PO-C-->PEO',
+            'x_studio_sd_quote': 'SD-QU-Company-->C',
+            'x_studio_rd_po_c': 'RD-PO-C-->Company',
             'x_studio_po_c_reference': 'POC Reference',
             'x_studio_result_responsable': 'Result Responsible',
             'x_studio_slagingskans': 'Hitrate',
