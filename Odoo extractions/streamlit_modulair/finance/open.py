@@ -19,7 +19,7 @@ def show():
         ('move_type', '=', 'out_invoice'),
         ('state', '=', 'posted'),
         ('payment_state', 'not in', ['paid','reversed']),
-        ('partner_id', 'not ilike', "PEO B.V")
+        ('partner_id', 'not ilike', "CompanyA")
     ]
     if klant_filter:
         domain.append(('partner_id.name', 'ilike', klant_filter))
