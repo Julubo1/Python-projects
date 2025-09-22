@@ -57,9 +57,9 @@ def show():
     else:
         # --- Sales orders voorbereiden ---
         if df_order_lines is not None and not df_order_lines.empty:
-            # Filter partner 'PEO B.V.(B)'
+            # Filter partner 'company B.V.(B)'
             df_orders = df_orders[
-                df_orders['partner_id'].apply(lambda x: x[1] if isinstance(x, list) else str(x)) != 'PEO B.V.(B)'
+                df_orders['partner_id'].apply(lambda x: x[1] if isinstance(x, list) else str(x)) != 'company B.V.(B)'
                 ]
             df_order_lines['order_id'] = df_order_lines['order_id'].apply(lambda x: x[0] if isinstance(x, list) else x)
             df_orders['date_order'] = pd.to_datetime(df_orders['date_order'], errors='coerce')
@@ -80,7 +80,7 @@ def show():
         repair_rows = []
         if df_repairs is not None and not df_repairs.empty:
             df_repairs = df_repairs[
-                df_repairs['partner_id'].apply(lambda x: x[1] if isinstance(x, list) else str(x)) != 'PEO B.V.(B)'
+                df_repairs['partner_id'].apply(lambda x: x[1] if isinstance(x, list) else str(x)) != 'company B.V.(B)'
                 ]
             df_repairs['x_studio_order_date'] = pd.to_datetime(df_repairs['x_studio_order_date'], errors='coerce')
 
