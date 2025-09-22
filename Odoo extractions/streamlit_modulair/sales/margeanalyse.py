@@ -20,7 +20,7 @@ def show():
         fields=[
             "id",
             "product_id",
-            "x_studio_net_peo_purchase_price_euro",
+            "x_studio_net_company_purchase_price_euro",
             "price_unit",
             "x_studio_effective_margin",
             "order_id",
@@ -100,7 +100,7 @@ def show():
     # Jaar + marges/prijzen
     df["year"] = df["date_order"].dt.year.astype("Int64")
     df["verkoopprijs"] = df["price_unit"]
-    df["inkoopprijs"] = df["x_studio_net_peo_purchase_price_euro"]
+    df["inkoopprijs"] = df["x_studio_net_company_purchase_price_euro"]
     df["marge_pct"] = df["x_studio_effective_margin"]
     df["product"] = df["product_id"].apply(lambda x: x[1] if isinstance(x, list) else None)
 
@@ -110,7 +110,7 @@ def show():
     df = df[~df["product"].str.contains(pattern, case=False, na=False)]
 
     # Specifieke klant uitsluiten
-    df = df[df["customer"] != "PEO B.V. (B)"]
+    df = df[df["customer"] != "company B.V. (B)"]
 
     # Onvolledige rijen uitsluiten
     df = df.dropna(subset=["product", "team", "customer", "date_order", "verkoopprijs", "inkoopprijs", "marge_pct"])
