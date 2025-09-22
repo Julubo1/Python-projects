@@ -20,7 +20,7 @@ def show():
         [
             ["product_id.detailed_type", "=", "product"],
             ["order_id.state", "in", ["sale", "done"]],
-            ["order_id.partner_id.name", "not in", ["PEO B.V. (B)"]],  # intercompany klanten uitsluiten
+            ["order_id.partner_id.name", "not in", ["company B.V. (B)"]],  # intercompany klanten uitsluiten
         ],
         [
             "id",
@@ -28,7 +28,7 @@ def show():
             "product_id",
             "price_unit",
             "product_uom_qty",
-            "x_studio_net_peo_purchase_price_euro",
+            "x_studio_net_company_purchase_price_euro",
             "x_studio_effective_margin"
         ]
 
@@ -90,21 +90,21 @@ def show():
     # Berekeningen
     df_filtered['maand'] = df_filtered['order_date'].dt.to_period('M').astype(str)
     df_filtered['verkoopbedrag'] = df_filtered['price_unit'] * df_filtered['product_uom_qty']
-    df_filtered['inkoopbedrag'] = df_filtered['x_studio_net_peo_purchase_price_euro'] * df_filtered['product_uom_qty']
+    df_filtered['inkoopbedrag'] = df_filtered['x_studio_net_company_purchase_price_euro'] * df_filtered['product_uom_qty']
     df_filtered['brutomarge_eur'] = df_filtered['verkoopbedrag'] - df_filtered['inkoopbedrag']
     df_filtered['marge_perc'] = (df_filtered['brutomarge_eur'] / df_filtered['verkoopbedrag'].replace(0, pd.NA)) * 100
 
     # Aggregatie per maand/product
     pivot = df_filtered.groupby(['maand', 'product_id']).agg({
         'price_unit': 'mean',
-        'x_studio_net_peo_purchase_price_euro': 'mean',
+        'x_studio_net_company_purchase_price_euro': 'mean',
         'brutomarge_eur': 'sum',
         'verkoopbedrag': 'sum',
         'inkoopbedrag': 'sum',
         'marge_perc': 'mean'
     }).reset_index().rename(columns={
         'price_unit': 'Gem. verkoopprijs',
-        'x_studio_net_peo_purchase_price_euro': 'Gem. inkoopprijs',
+        'x_studio_net_company_purchase_price_euro': 'Gem. inkoopprijs',
         'brutomarge_eur': 'Tot. marge €',
         'verkoopbedrag': 'Tot. omzet',
         'inkoopbedrag': 'Tot. inkoop',
