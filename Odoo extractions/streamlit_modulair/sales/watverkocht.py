@@ -23,14 +23,14 @@ def show():
 
     df_orders = pd.DataFrame(search_read(
         'sale.order',
-        domain=[('state', 'in', ['sale', 'done']), ('partner_id', '!=', 'PEO B.V. (B)')],
+        domain=[('state', 'in', ['sale', 'done']), ('partner_id', '!=', 'company B.V. (B)')],
         fields=['id', 'team_id', 'date_order', 'partner_id'],
         context={'lang': 'en_GB'}
     ))
 
     df_repairs = pd.DataFrame(search_read(
         'repair.order',
-        domain=[('state', '=', 'done'), ('partner_id', '!=', 'PEO B.V. (B)')],
+        domain=[('state', '=', 'done'), ('partner_id', '!=', 'company B.V. (B)')],
         fields=['fees_lines', 'operations', 'x_studio_order_date', 'partner_id'],
         context={'lang': 'en_GB'}
     ))
