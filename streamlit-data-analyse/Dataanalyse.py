@@ -5,25 +5,34 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import requests
 import json
+import os
 
 # -----------------------------
-# INSTELLINGEN
+# CONFIGURATIE
 # -----------------------------
-HF_MODEL = "bigscience/bloomz-560m"  # Publiek, geen token nodig
+HF_MODEL = "microsoft/phi-2"  # goed model voor tekstanalyse
 HF_URL = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
-headers = {"Content-Type": "application/json"}
+
+# Probeer token uit Streamlit secrets of omgevingsvariabele te halen
+HF_TOKEN = st.secrets.get("HF_TOKEN", os.getenv("HF_TOKEN", None))
+
+if HF_TOKEN:
+    headers = {"Authorization": f"Bearer {HF_TOKEN}", "Content-Type": "application/json"}
+else:
+    headers = {"Content-Type": "application/json"}
 
 
 def analyseer_met_ai(samenvatting: str) -> str:
-    """Gebruik Hugging Face publiek model voor tekstuele analyse."""
-    prompt = f"""Vat deze dataset-analyse samen in een korte, feitelijke opsomming:
+    """Stuur samenvatting naar Hugging Face model voor tekstuele analyse."""
+    prompt = f"""Vat onderstaande data-analyse kort en zakelijk samen in 5 puntsgewijze observaties.
+    Gebruik de Nederlandse taal.
+    Gegevens:
     {samenvatting}
-    Schrijf in het Nederlands, maximaal 5 punten.
     """
-    try:
-        payload = json.dumps({"inputs": prompt})
-        response = requests.post(HF_URL, headers=headers, data=payload, timeout=60)
 
+    payload = json.dumps({"inputs": prompt})
+    try:
+        response = requests.post(HF_URL, headers=headers, data=payload, timeout=60)
         if response.status_code == 200:
             data = response.json()
             if isinstance(data, list) and "generated_text" in data[0]:
@@ -39,16 +48,21 @@ def analyseer_met_ai(samenvatting: str) -> str:
 
 
 # -----------------------------
-# STREAMLIT APP
+# STREAMLIT INTERFACE
 # -----------------------------
 st.set_page_config(page_title="Automatische Data-analyse", layout="wide")
 st.title("📊 Automatische Data-analyse + AI-conclusie")
+
+if not HF_TOKEN:
+    st.warning(
+        "⚠️ Geen Hugging Face token gevonden. Voeg je token toe via Streamlit secrets (HF_TOKEN) of omgevingsvariabele."
+    )
 
 uploaded_file = st.file_uploader("Upload een dataset (CSV, Excel of JSON)", type=["csv", "xlsx", "xls", "json"])
 
 if uploaded_file:
     try:
-        # Lees bestand in
+        # Lees dataset
         if uploaded_file.name.endswith(".csv"):
             df = pd.read_csv(uploaded_file)
         elif uploaded_file.name.endswith((".xlsx", ".xls")):
@@ -63,12 +77,13 @@ if uploaded_file:
         st.dataframe(df.head())
 
         st.subheader("🔍 Basisanalyse")
-        st.write(f"Vorm van de data: {df.shape[0]} rijen × {df.shape[1]} kolommen")
+        st.write(f"Vorm: {df.shape[0]} rijen × {df.shape[1]} kolommen")
         st.write("Ontbrekende waarden per kolom:")
         st.write(df.isna().sum())
 
         numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
         cat_cols = df.select_dtypes(exclude=np.number).columns.tolist()
+
         summary_text = []
 
         if numeric_cols:
@@ -90,20 +105,20 @@ if uploaded_file:
                 st.bar_chart(vc)
                 summary_text.append(f"Topwaarden voor {col}: {vc.to_dict()}")
 
-        # -----------------------------
-        # AI-CONCLUSIE
-        # -----------------------------
+        # AI-conclusie
         st.subheader("🧠 AI-conclusie")
-        samenvatting = "\n".join(summary_text)
-        if len(samenvatting.strip()) < 50:
-            st.warning("Niet genoeg data voor AI-analyse.")
+        if not HF_TOKEN:
+            st.error("Geen token ingesteld — AI-analyse uitgeschakeld.")
         else:
-            with st.spinner("AI analyse wordt uitgevoerd..."):
-                conclusie = analyseer_met_ai(samenvatting)
-            st.write(conclusie)
+            samenvatting = "\n".join(summary_text)
+            if len(samenvatting.strip()) < 50:
+                st.warning("Niet genoeg data voor AI-analyse.")
+            else:
+                with st.spinner("AI analyse wordt uitgevoerd..."):
+                    conclusie = analyseer_met_ai(samenvatting)
+                st.write(conclusie)
 
     except Exception as e:
         st.error(f"Fout bij verwerken: {e}")
-
 else:
     st.info("Upload een dataset om te starten.")
