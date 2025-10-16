@@ -10,8 +10,11 @@ import os
 # -----------------------------
 # CONFIGURATIE
 # -----------------------------
-HF_MODEL = "google/flan-t5-base"  # goed model voor tekstanalyse
+HF_MODEL = "ai21labs/AI21-Jamba-Reasoning-3B"
 HF_URL = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
+HF_TOKEN = st.secrets.get("HF_TOKEN")
+headers = {"Authorization": f"Bearer {HF_TOKEN}", "Content-Type": "application/json"}
+
 
 # Probeer token uit Streamlit secrets of omgevingsvariabele te halen
 HF_TOKEN = st.secrets.get("HF_TOKEN", os.getenv("HF_TOKEN", None))
