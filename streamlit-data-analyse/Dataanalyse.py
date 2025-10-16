@@ -10,7 +10,7 @@ import os
 # -----------------------------
 # CONFIGURATIE
 # -----------------------------
-HF_MODEL = "microsoft/phi-2"  # goed model voor tekstanalyse
+HF_MODEL = "google/flan-t5-base"  # goed model voor tekstanalyse
 HF_URL = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
 
 # Probeer token uit Streamlit secrets of omgevingsvariabele te halen
