@@ -2,6 +2,7 @@ import json
 import re
 from difflib import get_close_matches
 from datetime import datetime
+import sqlite3
 
 
 with open("scripts.json", "r", encoding="utf-8") as f:
@@ -21,10 +22,22 @@ def zoek_antwoord(vraag):
             match = re.search(patroon, vraag)
             if match:
                 if "(.*)" in patroon:
+                    item = match.group(1).strip().lower()
+                    if categorie == "prijs":
+                        conn = sqlite3.connect("prijzen.db")
+                        c = conn.cursor()
+                        c.execute("SELECT prijs FROM producten WHERE naam = ?", (item,))
+                        result = c.fetchone()
+                        conn.close()
+                        if result:
+                            return f"De prijs van {item} is €{result[0]:.2f}."
+                        else:
+                            return f"Sorry, ik ken de prijs van {item} niet."
+                    else:
+                        return data["response"].format(item=item)
                     
-                    item = match.group(1)
-                    return data["response"].format(item=item)
-                return data["response"]
+                else:
+                    return data["response"]
 
     
     alle_patterns = [p for data in scripts.values() for p in data["patterns"]]
