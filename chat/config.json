@@ -1,0 +1,6 @@
+{
+  "database": "prijzen.db",
+  "taal": "nl",
+  "log_bestand": "chatlog.txt",
+  "reload_interval": 10
+}
