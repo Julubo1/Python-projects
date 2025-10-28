@@ -1,0 +1,15 @@
+Flask>=3.0.0
+Jinja2>=3.1.0
+Werkzeug>=3.0.0
+itsdangerous>=2.1.0
+click>=8.1.0
+
+# Voor fuzzy matching
+python-Levenshtein>=0.21.0
+fuzzywuzzy>=0.18.0
+
+# Voor JSON en SQLite (standaard in Python, maar vermeld voor duidelijkheid)
+jsonschema>=4.0.0
+
+# Optioneel (handig bij debugging en ontwikkeling)
+requests>=2.31.0
