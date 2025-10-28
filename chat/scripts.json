@@ -1,0 +1,19 @@
+{
+  "begroeting": {
+    "patterns": ["hallo", "hey", "hoi", "goede morgen", "goedemorgen", "goedemiddag", "goedenavond"],
+    "response": "Hoi! Hoe gaat het met je?"
+  },
+  "status": {
+    "patterns": ["hoe gaat het", "alles goed", "hoe is het"],
+    "response": "Met mij gaat het goed, bedankt dat je het vraagt!"
+  },
+  "naam": {
+    "patterns": ["wat is je naam", "wie ben jij"],
+    "response": "Ik ben je script-chatbot 😄"
+  },
+  "hulp": {
+    "patterns": ["help", "wat kun je", "wat doe jij"],
+    "response": "Ik kan simpele vragen beantwoorden die in mijn scripts staan."
+  }
+  
+}
