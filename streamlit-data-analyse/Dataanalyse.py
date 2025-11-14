@@ -19,11 +19,26 @@ if not uploaded:
 
 # ---------- READ ----------
 @st.cache_data
-def read_file(f):
-    return pd.read_csv(f) if f.name.endswith(".csv") else pd.read_excel(f)
+def read_file(f, sheet_name=None):
+    if f.name.endswith(".csv"):
+        return pd.read_csv(f)
+    else:  # Excel
+        return pd.read_excel(f, sheet_name=sheet_name)
 
-df = read_file(uploaded)
-st.success(f"Dataset geladen: {df.shape[0]} rijen × {df.shape[1]} kolommen")
+# ---------- BLAD-KIEZER (alleen bij Excel) ----------
+if uploaded.name.endswith((".xlsx", ".xls")):
+    # eerste keer inlezen om blad-namen op te halen
+    xls = pd.ExcelFile(uploaded)
+    bladen = xls.sheet_names
+    if len(bladen) > 1:
+        gekozen_blad = st.selectbox("Kies werkblad", bladen)
+    else:
+        gekozen_blad = bladen[0]
+    df = read_file(uploaded, sheet_name=gekozen_blad)
+else:  # CSV
+    df = read_file(uploaded)
+
+st.success(f"Dataset geladen: {df.shape[0]} rijen × {df.shape[1]} kolommen (blad: {gekozen_blad if 'gekozen_blad' in locals() else 'n.v.t.'})")
 
 # ---------- KEUZEBLOK ----------
 st.subheader("Kies twee kolommen voor maatwerk-analyse")
