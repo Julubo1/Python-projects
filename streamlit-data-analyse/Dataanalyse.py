@@ -90,8 +90,8 @@ else:
 # ---------- REST VAN DE AUTO-ANALYSE (OPTIONEEL) ----------
 with st.expander("📈 Algemene dataset-analyse (zoals eerder)"):
     df = read_file(uploaded)
-st.subheader("📄 Voorproefje")
-st.dataframe(df.head())
+    st.subheader("📄 Voorproefje")
+    st.dataframe(df.head())
 
 # ---------- AUTO-DETECT ----------
 def auto_detect_types(df):
