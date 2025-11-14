@@ -1,127 +1,107 @@
+# app.py
 import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import requests
-import json
-import os
+from scipy import stats
+from sklearn.preprocessing import LabelEncoder
+import phik
+from phik import resources, report
+import os, io, base64
 
-# -----------------------------
-# CONFIGURATIE
-# -----------------------------
-HF_MODEL = "ai21labs/AI21-Jamba-Reasoning-3B"
-HF_URL = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
-#HF_TOKEN = st.secrets.get("HF_TOKEN")
-#headers = {"Authorization": f"Bearer {HF_TOKEN}", "Content-Type": "application/json"}
+# ---------- CONFIG ----------
+st.set_page_config(page_title="Auto-Analyse", layout="wide")
+st.title("📊 Automatische Data-analyse + Advies")
 
+# ---------- UPLOAD ----------
+uploaded = st.file_uploader("Upload CSV of Excel", type=["csv","xlsx","xls"])
 
-# Probeer token uit Streamlit secrets of omgevingsvariabele te halen
-HF_TOKEN = st.secrets.get("HF_TOKEN", os.getenv("HF_TOKEN", None))
+if not uploaded:
+    st.stop()
 
-if HF_TOKEN:
-    headers = {"Authorization": f"Bearer {HF_TOKEN}", "Content-Type": "application/json"}
-else:
-    headers = {"Content-Type": "application/json"}
+# ---------- READ ----------
+@st.cache_data
+def read_file(f):
+    return pd.read_csv(f) if f.name.endswith(".csv") else pd.read_excel(f)
 
+df = read_file(uploaded)
+st.subheader("📄 Voorproefje")
+st.dataframe(df.head())
 
-def analyseer_met_ai(samenvatting: str) -> str:
-    """Stuur samenvatting naar Hugging Face model voor tekstuele analyse."""
-    prompt = f"""Vat onderstaande data-analyse kort en zakelijk samen in 5 puntsgewijze observaties.
-    Gebruik de Nederlandse taal.
-    Gegevens:
-    {samenvatting}
-    """
-
-    payload = json.dumps({"inputs": prompt})
-    try:
-        response = requests.post(HF_URL, headers=headers, data=payload, timeout=60)
-        if response.status_code == 200:
-            data = response.json()
-            if isinstance(data, list) and "generated_text" in data[0]:
-                return data[0]["generated_text"]
-            elif isinstance(data, dict) and "generated_text" in data:
-                return data["generated_text"]
+# ---------- AUTO-DETECT ----------
+def auto_detect_types(df):
+    """Retourneert dict met keys numeric, categorical, datetime, constant, id_like"""
+    out = {"num":[],"cat":[],"dt":[],"constant":[],"id":[]}
+    for col in df.columns:
+        s = df[col]
+        if pd.api.types.is_numeric_dtype(s):
+            if s.nunique() == 1:
+                out["constant"].append(col)
+            elif s.nunique() > 0.95*len(s) and s.is_monotonic_increasing:
+                out["id"].append(col)
             else:
-                return str(data)
+                out["num"].append(col)
+        elif pd.api.types.is_datetime64_any_dtype(s):
+            out["dt"].append(col)
         else:
-            return f"API-fout: {response.status_code} - {response.text}"
-    except Exception as e:
-        return f"AI-analyse mislukt: {e}"
-
-
-# -----------------------------
-# STREAMLIT INTERFACE
-# -----------------------------
-st.set_page_config(page_title="Automatische Data-analyse", layout="wide")
-st.title("📊 Automatische Data-analyse + AI-conclusie")
-
-if not HF_TOKEN:
-    st.warning(
-        "⚠️ Geen Hugging Face token gevonden. Voeg je token toe via Streamlit secrets (HF_TOKEN) of omgevingsvariabele."
-    )
-
-uploaded_file = st.file_uploader("Upload een dataset (CSV, Excel of JSON)", type=["csv", "xlsx", "xls", "json"])
-
-if uploaded_file:
-    try:
-        # Lees dataset
-        if uploaded_file.name.endswith(".csv"):
-            df = pd.read_csv(uploaded_file)
-        elif uploaded_file.name.endswith((".xlsx", ".xls")):
-            df = pd.read_excel(uploaded_file)
-        elif uploaded_file.name.endswith(".json"):
-            df = pd.read_json(uploaded_file)
-        else:
-            st.error("Bestandsformaat niet ondersteund.")
-            st.stop()
-
-        st.subheader("📄 Voorbeeld van data")
-        st.dataframe(df.head())
-
-        st.subheader("🔍 Basisanalyse")
-        st.write(f"Vorm: {df.shape[0]} rijen × {df.shape[1]} kolommen")
-        st.write("Ontbrekende waarden per kolom:")
-        st.write(df.isna().sum())
-
-        numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
-        cat_cols = df.select_dtypes(exclude=np.number).columns.tolist()
-
-        summary_text = []
-
-        if numeric_cols:
-            st.subheader("📈 Numerieke analyse")
-            desc = df[numeric_cols].describe()
-            st.write(desc)
-            summary_text.append("Numerieke kolommen: " + ", ".join(numeric_cols))
-            summary_text.append(str(desc))
-
-            if len(numeric_cols) >= 2:
-                st.write("Relaties tussen numerieke kolommen:")
-                fig = sns.pairplot(df[numeric_cols])
-                st.pyplot(fig)
-
-        if cat_cols:
-            st.subheader("🔤 Categorische kolommen")
-            for col in cat_cols:
-                vc = df[col].value_counts().head(10)
-                st.bar_chart(vc)
-                summary_text.append(f"Topwaarden voor {col}: {vc.to_dict()}")
-
-        # AI-conclusie
-        st.subheader("🧠 AI-conclusie")
-        if not HF_TOKEN:
-            st.error("Geen token ingesteld — AI-analyse uitgeschakeld.")
-        else:
-            samenvatting = "\n".join(summary_text)
-            if len(samenvatting.strip()) < 50:
-                st.warning("Niet genoeg data voor AI-analyse.")
+            if s.nunique() == 1:
+                out["constant"].append(col)
+            elif s.nunique()/len(s) > 0.5:
+                out["id"].append(col)
             else:
-                with st.spinner("AI analyse wordt uitgevoerd..."):
-                    conclusie = analyseer_met_ai(samenvatting)
-                st.write(conclusie)
+                out["cat"].append(col)
+    return out
 
-    except Exception as e:
-        st.error(f"Fout bij verwerken: {e}")
+types = auto_detect_types(df)
+st.write("**Gedetecteerde types:**", types)
+
+# ---------- CLEAN ----------
+df = df.drop(columns=types["constant"]+types["id"])
+types = {k:[c for c in v if c in df.columns] for k,v in types.items()}
+
+# ---------- QUICK EDA ----------
+st.subheader("🔍 Snelle profilering")
+left, right = st.columns(2)
+with left:
+    st.metric("Rijen", df.shape[0])
+    st.metric("Kolommen", df.shape[1])
+with right:
+    st.write("Missings (%)", (df.isna().mean()*100).round(1).sort_values(ascending=False))
+
+# ---------- CORRELATIES ----------
+corr_method = st.selectbox("Correlatiemethode", ["Pearson","Spearman","Phik (categorical)"])
+num_cols = types["num"]
+cat_cols = types["cat"]
+
+if corr_method == "Phik (categorical)" and (num_cols or cat_cols):
+    # Phik werkt voor zowel cat als num
+    phik_matrix = df.phik_matrix()
+    fig, ax = plt.subplots(figsize=(6,5))
+    sns.heatmap(phik_matrix, annot=True, fmt=".2f", cmap="coolwarm", ax=ax)
+    st.pyplot(fig)
+    st.caption("Phik = 0 → onafhankelijk, 1 → perfecte relatie")
 else:
-    st.info("Upload een dataset om te starten.")
+    if len(num_cols) >= 2:
+        corr = df[num_cols].corr(method=corr_method.lower())
+        fig, ax = plt.subplots(figsize=(6,5))
+        sns.heatmap(corr, annot=True, fmt=".2f", cmap="coolwarm", ax=ax)
+        st.pyplot(fig)
+
+# ---------- OUTLIERS ----------
+if num_cols:
+    st.subheader("🎯 Outlier-scan (Z-score > 3)")
+    z = np.abs(stats.zscore(df[num_cols].dropna()))
+    outliers = (z > 3).any(axis=1)
+    st.write(f"Aantal outliers: **{outliers.sum()}** ({outliers.mean()*100:.1f}%)")
+    if outliers.sum():
+        st.write(df[outliers][num_cols].describe())
+
+# ---------- CAUSALE HINTS ----------
+def causale_hints(df, types):
+    """Simpele heuristiek: zoek naar hoge correlatie + lage p-waarde."""
+    hints = []
+    num = types["num"]
+    if len(num) < 2: return hints
+    corr = df[num].corr()
+    for i in
