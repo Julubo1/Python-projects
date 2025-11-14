@@ -104,4 +104,61 @@ def causale_hints(df, types):
     num = types["num"]
     if len(num) < 2: return hints
     corr = df[num].corr()
-    for i in
+    for i in range(len(corr.columns)):
+        for j in range(i+1, len(corr.columns)):
+            c = corr.iloc[i,j]
+            if abs(c) > 0.7:
+                x, y = corr.columns[i], corr.columns[j]
+                # quick lin-reg p-waarde
+                mask = df[[x,y]].dropna()
+                if len(mask) < 10: continue
+                slope, intercept, r, p, se = stats.linregress(mask[x], mask[y])
+                if p < 0.01:
+                    hints.append(f"· **{x}** ↔ **{y}** (r={c:.2f}, p={p:.2g}) → mogelijk sterk verband.")
+    return hints
+
+hints = causale_hints(df, types)
+if hints:
+    st.subheader("🔗 Mogelijke causale verbanden")
+    for h in hints:
+        st.write(h)
+
+# ---------- ADVIES ----------
+def geef_advies(df, types, hints):
+    advies = []
+    advies.append("### Samenvatting & Advies\n")
+    if types["num"]:
+        desc = df[types["num"]].describe()
+        hoog = (desc.loc["std"]/desc.loc["mean"]).sort_values(ascending=False)
+        advies.append(f"· De variabele **{hoog.index[0]}** toont de grootste spreiding (cv={hoog.iloc[0]:.2f}).")
+    if hints:
+        advies.append("· Er zijn sterke correlaties gevonden; overweeg verder onderzoek naar causaliteit.")
+    if types["cat"]:
+        for col in types["cat"][:3]:
+            top = df[col].value_counts(normalize=True).iloc[0]
+            if top > 0.5:
+                advies.append(f"· In **{col}** domineert de categorie '{df[col].value_counts().index[0]}' ({top*100:.0f}%).")
+    miss = df.isna().mean()
+    if miss.max() > 0.1:
+        advies.append(f"· Let op: **{miss.idxmax()}** mist {miss.max()*100:.0f}% van de waarden.")
+    return "\n".join(advies)
+
+st.markdown(geef_advies(df, types, hints))
+
+# ---------- OPTIONAL AI NARRATIVE ----------
+HF_TOKEN = st.secrets.get("HF_TOKEN") or os.getenv("HF_TOKEN")
+if HF_TOKEN and st.checkbox("🧠 Genereer een AI-verhaal (vereist HF-token)"):
+    import requests, json
+    HF_URL = "https://api-inference.huggingface.co/models/ai21labs/AI21-Jamba-Reasoning-3B"
+    headers = {"Authorization": f"Bearer {HF_TOKEN}", "Content-Type":"application/json"}
+    prompt = f"""Vat in 4 korte Nederlandse zinnen de belangrijkste inzichten uit deze analyse:
+    {geef_advies(df, types, hints)}"""
+    payload = json.dumps({"inputs": prompt})
+    try:
+        resp = requests.post(HF_URL, headers=headers, data=payload, timeout=60)
+        if resp.status_code == 200:
+            st.write("**AI-verhaal:**", resp.json()[0]["generated_text"])
+        else:
+            st.write("AI-model nog aan het opstarten...", resp.status_code)
+    except Exception as e:
+        st.write("AI-fout:", e)
