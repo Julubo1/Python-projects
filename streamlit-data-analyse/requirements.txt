@@ -7,3 +7,4 @@ requests
 scipy 
 scikit-learn 
 phik
+openpyxl
