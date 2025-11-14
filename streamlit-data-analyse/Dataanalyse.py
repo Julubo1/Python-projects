@@ -10,7 +10,7 @@ import io, os
 
 # ---------- CONFIG ----------
 st.set_page_config(page_title="Auto-Analyse + handige keuzes", layout="wide")
-st.title("📊 Automatische Data-analyse + eigen kolommen-verkenner")
+st.title("Automatische Data-analyse + eigen kolommen-verkenner")
 
 # ---------- UPLOAD ----------
 uploaded = st.file_uploader("Upload CSV of Excel", type=["csv","xlsx","xls"])
@@ -26,7 +26,7 @@ df = read_file(uploaded)
 st.success(f"Dataset geladen: {df.shape[0]} rijen × {df.shape[1]} kolommen")
 
 # ---------- KEUZEBLOK ----------
-st.subheader("🔍 Kies twee kolommen voor maatwerk-analyse")
+st.subheader("Kies twee kolommen voor maatwerk-analyse")
 left, right = st.columns(2)
 with left:
     col1 = st.selectbox("Kolom 1", df.columns)
@@ -88,123 +88,123 @@ else:
 # ---------- EIND KEUZEBLOK ----------
 
 
-with st.expander("📈 Algemene dataset-analyse (zoals eerder)"):
+with st.expander("Algemene dataset-analyse"):
     
-    st.subheader("📄 Voorproefje")
+    st.subheader("Voorproefje")
     st.dataframe(df.head())
 
 # ---------- AUTO-DETECT ----------
-def auto_detect_types(df):
-    """Retourneert dict met keys numeric, categorical, datetime, constant, id_like"""
-    out = {"num":[],"cat":[],"dt":[],"constant":[],"id":[]}
-    for col in df.columns:
-        s = df[col]
-        if pd.api.types.is_numeric_dtype(s):
-            if s.nunique() == 1:
-                out["constant"].append(col)
-            elif s.nunique() > 0.95*len(s) and s.is_monotonic_increasing:
-                out["id"].append(col)
+    def auto_detect_types(df):
+        """Retourneert dict met keys numeric, categorical, datetime, constant, id_like"""
+        out = {"num":[],"cat":[],"dt":[],"constant":[],"id":[]}
+        for col in df.columns:
+            s = df[col]
+            if pd.api.types.is_numeric_dtype(s):
+                if s.nunique() == 1:
+                    out["constant"].append(col)
+                elif s.nunique() > 0.95*len(s) and s.is_monotonic_increasing:
+                    out["id"].append(col)
+                else:
+                    out["num"].append(col)
+            elif pd.api.types.is_datetime64_any_dtype(s):
+                out["dt"].append(col)
             else:
-                out["num"].append(col)
-        elif pd.api.types.is_datetime64_any_dtype(s):
-            out["dt"].append(col)
-        else:
-            if s.nunique() == 1:
-                out["constant"].append(col)
-            elif s.nunique()/len(s) > 0.5:
-                out["id"].append(col)
-            else:
-                out["cat"].append(col)
-    return out
+                if s.nunique() == 1:
+                    out["constant"].append(col)
+                elif s.nunique()/len(s) > 0.5:
+                    out["id"].append(col)
+                else:
+                    out["cat"].append(col)
+        return out
 
-types = auto_detect_types(df)
-st.write("**Gedetecteerde types:**", types)
+    types = auto_detect_types(df)
+    st.write("**Gedetecteerde types:**", types)
 
-# ---------- CLEAN ----------
-df = df.drop(columns=types["constant"]+types["id"])
-types = {k:[c for c in v if c in df.columns] for k,v in types.items()}
+    # ---------- CLEAN ----------
+    df = df.drop(columns=types["constant"]+types["id"])
+    types = {k:[c for c in v if c in df.columns] for k,v in types.items()}
 
-# ---------- QUICK EDA ----------
-st.subheader("🔍 Snelle profilering")
-left, right = st.columns(2)
-with left:
-    st.metric("Rijen", df.shape[0])
-    st.metric("Kolommen", df.shape[1])
-with right:
-    st.write("Missings (%)", (df.isna().mean()*100).round(1).sort_values(ascending=False))
+    # ---------- QUICK EDA ----------
+    st.subheader("Snelle profilering")
+    left, right = st.columns(2)
+    with left:
+        st.metric("Rijen", df.shape[0])
+        st.metric("Kolommen", df.shape[1])
+    with right:
+        st.write("Missings (%)", (df.isna().mean()*100).round(1).sort_values(ascending=False))
 
-# ---------- CORRELATIES ----------
-corr_method = st.selectbox("Correlatiemethode", ["Pearson","Spearman","Phik (categorical)"])
-num_cols = types["num"]
-cat_cols = types["cat"]
+    # ---------- CORRELATIES ----------
+    corr_method = st.selectbox("Correlatiemethode", ["Pearson","Spearman","Phik (categorical)"])
+    num_cols = types["num"]
+    cat_cols = types["cat"]
 
-if corr_method == "Phik (categorical)" and (num_cols or cat_cols):
-    # Phik werkt voor zowel cat als num
-    phik_matrix = df.phik_matrix()
-    fig, ax = plt.subplots(figsize=(6,5))
-    sns.heatmap(phik_matrix, annot=True, fmt=".2f", cmap="coolwarm", ax=ax)
-    st.pyplot(fig)
-    st.caption("Phik = 0 → onafhankelijk, 1 → perfecte relatie")
-else:
-    if len(num_cols) >= 2:
-        corr = df[num_cols].corr(method=corr_method.lower())
+    if corr_method == "Phik (categorical)" and (num_cols or cat_cols):
+        # Phik werkt voor zowel cat als num
+        phik_matrix = df.phik_matrix()
         fig, ax = plt.subplots(figsize=(6,5))
-        sns.heatmap(corr, annot=True, fmt=".2f", cmap="coolwarm", ax=ax)
+        sns.heatmap(phik_matrix, annot=True, fmt=".2f", cmap="coolwarm", ax=ax)
         st.pyplot(fig)
+        st.caption("Phik = 0 → onafhankelijk, 1 → perfecte relatie")
+    else:
+        if len(num_cols) >= 2:
+            corr = df[num_cols].corr(method=corr_method.lower())
+            fig, ax = plt.subplots(figsize=(6,5))
+            sns.heatmap(corr, annot=True, fmt=".2f", cmap="coolwarm", ax=ax)
+            st.pyplot(fig)
 
-# ---------- OUTLIERS ----------
-if num_cols:
-    st.subheader("🎯 Outlier-scan (Z-score > 3)")
-    z = np.abs(stats.zscore(df[num_cols].dropna()))
-    outliers = (z > 3).any(axis=1)
-    st.write(f"Aantal outliers: **{outliers.sum()}** ({outliers.mean()*100:.1f}%)")
-    if outliers.sum():
-        st.write(df[outliers][num_cols].describe())
+    # ---------- OUTLIERS ----------
+    if num_cols:
+        st.subheader("🎯 Outlier-scan (Z-score > 3)")
+        z = np.abs(stats.zscore(df[num_cols].dropna()))
+        outliers = (z > 3).any(axis=1)
+        st.write(f"Aantal outliers: **{outliers.sum()}** ({outliers.mean()*100:.1f}%)")
+        if outliers.sum():
+            st.write(df[outliers][num_cols].describe())
 
-# ---------- CAUSALE HINTS ----------
-def causale_hints(df, types):
-    """Simpele heuristiek: zoek naar hoge correlatie + lage p-waarde."""
-    hints = []
-    num = types["num"]
-    if len(num) < 2: return hints
-    corr = df[num].corr()
-    for i in range(len(corr.columns)):
-        for j in range(i+1, len(corr.columns)):
-            c = corr.iloc[i,j]
-            if abs(c) > 0.7:
-                x, y = corr.columns[i], corr.columns[j]
-                # quick lin-reg p-waarde
-                mask = df[[x,y]].dropna()
-                if len(mask) < 10: continue
-                slope, intercept, r, p, se = stats.linregress(mask[x], mask[y])
-                if p < 0.01:
-                    hints.append(f"· **{x}** ↔ **{y}** (r={c:.2f}, p={p:.2g}) → mogelijk sterk verband.")
-    return hints
+    # ---------- CAUSALE HINTS ----------
+    def causale_hints(df, types):
+        """Simpele heuristiek: zoek naar hoge correlatie + lage p-waarde."""
+        hints = []
+        num = types["num"]
+        if len(num) < 2: return hints
+        corr = df[num].corr()
+        for i in range(len(corr.columns)):
+            for j in range(i+1, len(corr.columns)):
+                c = corr.iloc[i,j]
+                if abs(c) > 0.7:
+                    x, y = corr.columns[i], corr.columns[j]
+                    # quick lin-reg p-waarde
+                    mask = df[[x,y]].dropna()
+                    if len(mask) < 10: continue
+                    slope, intercept, r, p, se = stats.linregress(mask[x], mask[y])
+                    if p < 0.01:
+                        hints.append(f"· **{x}** ↔ **{y}** (r={c:.2f}, p={p:.2g}) → mogelijk sterk verband.")
+        return hints
 
-hints = causale_hints(df, types)
-if hints:
-    st.subheader("🔗 Mogelijke causale verbanden")
-    for h in hints:
-        st.write(h)
-
-# ---------- ADVIES ----------
-def geef_advies(df, types, hints):
-    advies = []
-    advies.append("### Samenvatting & Advies\n")
-    if types["num"]:
-        desc = df[types["num"]].describe()
-        hoog = (desc.loc["std"]/desc.loc["mean"]).sort_values(ascending=False)
-        advies.append(f"· De variabele **{hoog.index[0]}** toont de grootste spreiding (cv={hoog.iloc[0]:.2f}).")
+    hints = causale_hints(df, types)
     if hints:
-        advies.append("· Er zijn sterke correlaties gevonden; overweeg verder onderzoek naar causaliteit.")
-    if types["cat"]:
-        for col in types["cat"][:3]:
-            top = df[col].value_counts(normalize=True).iloc[0]
-            if top > 0.5:
-                advies.append(f"· In **{col}** domineert de categorie '{df[col].value_counts().index[0]}' ({top*100:.0f}%).")
-    miss = df.isna().mean()
-    if miss.max() > 0.1:
-        advies.append(f"· Let op: **{miss.idxmax()}** mist {miss.max()*100:.0f}% van de waarden.")
-    return "\n".join(advies)
+        st.subheader("Mogelijke causale verbanden")
+        for h in hints:
+            st.write(h)
 
-st.markdown(geef_advies(df, types, hints))
+    # ---------- ADVIES ----------
+    def geef_advies(df, types, hints):
+        advies = []
+        advies.append("### Samenvatting & Advies\n")
+        if types["num"]:
+            desc = df[types["num"]].describe()
+            hoog = (desc.loc["std"]/desc.loc["mean"]).sort_values(ascending=False)
+            advies.append(f"· De variabele **{hoog.index[0]}** toont de grootste spreiding (cv={hoog.iloc[0]:.2f}).")
+        if hints:
+            advies.append("· Er zijn sterke correlaties gevonden; overweeg verder onderzoek naar causaliteit.")
+        if types["cat"]:
+            for col in types["cat"][:3]:
+                top = df[col].value_counts(normalize=True).iloc[0]
+                if top > 0.5:
+                    advies.append(f"· In **{col}** domineert de categorie '{df[col].value_counts().index[0]}' ({top*100:.0f}%).")
+        miss = df.isna().mean()
+        if miss.max() > 0.1:
+            advies.append(f"· Let op: **{miss.idxmax()}** mist {miss.max()*100:.0f}% van de waarden.")
+        return "\n".join(advies)
+
+    st.markdown(geef_advies(df, types, hints))
